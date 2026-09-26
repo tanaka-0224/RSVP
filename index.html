@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0f1115" />
+  <meta name="description" content="PDFを端末内で解析し、オフラインでRSVP読書するWebアプリ" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>RSVP読書</title>
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <link rel="icon" href="./icons/icon-192.png" />
+  <link rel="apple-touch-icon" href="./icons/icon-192.png" />
+  <link rel="stylesheet" href="./css/app.css" />
+</head>
+<body>
+  <div class="app">
+    <!-- ライブラリ -->
+    <section id="view-library" class="view active" aria-label="マイライブラリ">
+      <header class="topbar">
+        <h1>RSVP読書</h1>
+        <div class="spacer"></div>
+      </header>
+      <div class="library-body">
+        <p class="hint">PDFは端末内だけで解析・保存します。外出先では保存済みの本をオフラインで読めます。</p>
+        <div id="book-list" class="book-list"></div>
+        <div id="library-empty" class="empty" hidden>
+          <strong>本がまだありません</strong>
+          自宅などネット接続がある環境でPDFを追加してください。
+        </div>
+      </div>
+      <div class="add-bar">
+        <button type="button" class="primary-btn" id="btn-add-book">PDFを追加</button>
+      </div>
+    </section>
+
+    <!-- インポート -->
+    <section id="view-import" class="view" aria-label="PDF取り込み">
+      <header class="topbar">
+        <button type="button" class="icon-btn" id="btn-import-back" aria-label="戻る">←</button>
+        <h1>PDFを追加</h1>
+      </header>
+      <div class="import-body">
+        <label class="drop" for="pdf-input">
+          <strong>PDFを選択</strong>
+          <p>テキスト情報を持つ横書きPDFに対応しています</p>
+        </label>
+        <input type="file" id="pdf-input" accept="application/pdf,.pdf" hidden />
+        <div id="import-status" class="status-box" aria-live="polite">
+          <div class="label" id="import-label">準備中…</div>
+          <div class="bar"><span id="import-bar"></span></div>
+        </div>
+        <p id="import-error" class="error" hidden></p>
+      </div>
+    </section>
+
+    <!-- リーダー -->
+    <section id="view-reader" class="view reader mode-rsvp" aria-label="読書">
+      <header class="topbar">
+        <button type="button" class="icon-btn" id="btn-reader-back" aria-label="ライブラリへ">←</button>
+        <h1 id="reader-title">本</h1>
+        <div class="spacer"></div>
+        <button type="button" class="ghost-btn mode-toggle" id="btn-mode-toggle">通常表示</button>
+      </header>
+
+      <div class="reader-stage" id="rsvp-stage">
+        <div class="rsvp-word" id="rsvp-word" aria-live="polite">—</div>
+        <div class="reader-meta" id="reader-meta">0 / 0 · 0%</div>
+      </div>
+
+      <div class="reader-stage text-stage" id="text-stage" hidden>
+        <div class="text-pane" id="text-pane"></div>
+      </div>
+
+      <div class="reader-controls" id="rsvp-controls">
+        <div class="control-row">
+          <button type="button" class="ctl" id="btn-restart" aria-label="最初へ">⏮</button>
+          <button type="button" class="ctl" id="btn-prev" aria-label="前へ">◀</button>
+          <button type="button" class="ctl play" id="btn-play" aria-label="再生">▶</button>
+          <button type="button" class="ctl" id="btn-next" aria-label="次へ">▶</button>
+          <button type="button" class="ctl" id="btn-jump" aria-label="位置へ移動">◎</button>
+        </div>
+        <div class="speed">
+          <header>
+            <span>速度</span>
+            <strong id="speed-label">400 CPM</strong>
+          </header>
+          <input type="range" id="speed-range" min="120" max="1200" step="20" value="400" />
+          <div class="speed-ends"><span>遅い</span><span>速い</span></div>
+        </div>
+      </div>
+
+      <div class="reader-controls text-controls" id="text-controls" hidden>
+        <div class="control-row">
+          <button type="button" class="primary-btn" id="btn-back-rsvp">RSVPに戻る</button>
+        </div>
+        <p class="hint text-hint">現在位置付近の文章です。タップした箇所からRSVPを再開できます。</p>
+      </div>
+    </section>
+  </div>
+
+  <!-- 削除確認 -->
+  <div class="modal" id="modal-delete" role="dialog" aria-modal="true" aria-labelledby="delete-title">
+    <div class="sheet">
+      <h2 id="delete-title">本を削除</h2>
+      <p id="delete-message">この本を削除しますか？</p>
+      <div class="sheet-actions">
+        <button type="button" class="ghost-btn" id="btn-delete-cancel">キャンセル</button>
+        <button type="button" class="danger-btn" id="btn-delete-confirm">削除</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 位置ジャンプ -->
+  <div class="modal" id="modal-jump" role="dialog" aria-modal="true" aria-labelledby="jump-title">
+    <div class="sheet">
+      <h2 id="jump-title">位置へ移動</h2>
+      <p>単位番号を指定して再生位置を変更します。</p>
+      <label class="jump-field">
+        <span>位置（1〜<span id="jump-max">1</span>）</span>
+        <input type="number" id="jump-input" min="1" step="1" />
+      </label>
+      <div class="sheet-actions">
+        <button type="button" class="ghost-btn" id="btn-jump-cancel">キャンセル</button>
+        <button type="button" class="primary-btn" id="btn-jump-confirm">移動</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="./js/app.js"></script>
+</body>
+</html>
