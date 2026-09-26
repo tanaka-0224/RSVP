@@ -23,6 +23,17 @@
       </header>
       <div class="library-body">
         <p class="hint">PDFは端末内だけで解析・保存します。外出先では保存済みの本をオフラインで読めます。</p>
+        <section class="storage-panel" aria-labelledby="storage-title">
+          <div class="storage-heading">
+            <strong id="storage-title">このサイトの保存容量</strong>
+            <button type="button" class="ghost-btn storage-refresh" id="btn-storage-refresh">更新</button>
+          </div>
+          <p id="storage-usage" class="storage-usage" aria-live="polite">確認中…</p>
+          <div class="storage-track" id="storage-track" role="progressbar" aria-label="推定ストレージ使用率" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+            <span id="storage-fill"></span>
+          </div>
+          <p id="storage-note" class="storage-note">本のデータのほか、オフライン用ファイルなど、このサイトの保存データ全体の推定値です。</p>
+        </section>
         <div id="book-list" class="book-list"></div>
         <div id="library-empty" class="empty" hidden>
           <strong>本がまだありません</strong>

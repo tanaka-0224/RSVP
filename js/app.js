@@ -23,6 +23,11 @@ const views = {
 const els = {
   bookList: $("book-list"),
   libraryEmpty: $("library-empty"),
+  storageUsage: $("storage-usage"),
+  storageNote: $("storage-note"),
+  storageTrack: $("storage-track"),
+  storageFill: $("storage-fill"),
+  btnStorageRefresh: $("btn-storage-refresh"),
   btnAddBook: $("btn-add-book"),
   btnImportBack: $("btn-import-back"),
   pdfInput: /** @type {HTMLInputElement} */ ($("pdf-input")),
@@ -108,6 +113,7 @@ async function refreshLibrary() {
   const books = await listBooks();
   els.bookList.innerHTML = "";
   els.libraryEmpty.hidden = books.length > 0;
+  await refreshStorageUsage();
 
   for (const book of books) {
     const pct = progressPercent(book);
@@ -149,6 +155,41 @@ async function refreshLibrary() {
 
     card.append(openBtn, renameBtn, delBtn);
     els.bookList.append(card);
+  }
+}
+
+function formatBytes(bytes) {
+  if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+async function refreshStorageUsage() {
+  if (!navigator.storage?.estimate) {
+    els.storageUsage.textContent = "このブラウザでは使用量を取得できません。";
+    els.storageNote.textContent = "Safari 17以降など、Storage APIに対応したブラウザで確認できます。";
+    els.storageTrack.hidden = true;
+    return;
+  }
+
+  els.storageUsage.textContent = "確認中…";
+  try {
+    const { usage, quota } = await navigator.storage.estimate();
+    if (typeof usage !== "number") throw new Error("Storage usage unavailable");
+    const percent = typeof quota === "number" && quota > 0
+      ? Math.min(100, Math.round((usage / quota) * 100))
+      : null;
+    els.storageUsage.textContent = percent === null
+      ? `使用中 ${formatBytes(usage)}（上限の目安は取得できません）`
+      : `使用中 ${formatBytes(usage)} / 上限の目安 ${formatBytes(quota)}（${percent}%）`;
+    els.storageFill.style.width = `${percent ?? 0}%`;
+    els.storageTrack.setAttribute("aria-valuenow", String(percent ?? 0));
+    els.storageTrack.hidden = percent === null;
+    els.storageNote.textContent = "ブラウザが返す概算です。本のデータに加え、オフライン用ファイルなど、このサイトの保存データ全体を含みます。実際の上限や空き容量とは異なる場合があります。";
+  } catch (err) {
+    console.warn("Storage estimate failed", err);
+    els.storageUsage.textContent = "使用量を取得できませんでした。";
+    els.storageNote.textContent = "時間をおいて「更新」を押してください。";
+    els.storageTrack.hidden = true;
   }
 }
 
@@ -396,6 +437,7 @@ function registerServiceWorker() {
 }
 
 function bindEvents() {
+  els.btnStorageRefresh.addEventListener("click", refreshStorageUsage);
   els.btnAddBook.addEventListener("click", () => {
     els.importError.hidden = true;
     els.importStatus.classList.remove("visible");
