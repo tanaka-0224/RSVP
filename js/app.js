@@ -68,6 +68,11 @@ let showTextAlongsideRsvp = false;
 let pendingDeleteId = null;
 let saveTimer = 0;
 let importing = false;
+/** @type {HTMLButtonElement[]} */
+let textUnitElements = [];
+/** @type {HTMLButtonElement|null} */
+let currentTextElement = null;
+let renderedTextBookId = null;
 
 const player = new RsvpPlayer({
   onTick(index, unit) {
@@ -170,10 +175,9 @@ function applyModeUi() {
 
   if (!isRsvp) {
     player.pause();
-    renderTextMode();
+    renderTextMode(true);
   } else {
-    if (showTextAlongsideRsvp) renderTextMode();
-    else els.textPane.replaceChildren();
+    if (showTextAlongsideRsvp) renderTextMode(true);
     player.emit();
   }
 }
@@ -193,47 +197,40 @@ function renderMeta(index) {
   els.readerMeta.textContent = `${(index + 1).toLocaleString()} / ${total.toLocaleString()} · ${pct}%`;
 }
 
-function renderTextMode() {
+function renderTextMode(scrollToCurrent = false) {
   if (!currentBook) return;
   const units = currentBook.units;
-  const center = player.index;
-  const radius = 80;
-  const start = Math.max(0, center - radius);
-  const end = Math.min(units.length, center + radius + 1);
 
-  const frag = document.createDocumentFragment();
-  if (start > 0) {
-    const lead = document.createElement("span");
-    lead.className = "text-ellipsis";
-    lead.textContent = "… ";
-    frag.append(lead);
-  }
-
-  for (let i = start; i < end; i++) {
-    const span = document.createElement("button");
-    span.type = "button";
-    span.className = "text-unit" + (i === center ? " current" : "");
-    span.dataset.index = String(i);
-    span.textContent = units[i];
-    frag.append(span);
-    // 日本語は基本スペース不要。英数字の後だけスペース
-    if (i < end - 1 && /[A-Za-z0-9]$/.test(units[i]) && /^[A-Za-z0-9]/.test(units[i + 1])) {
-      frag.append(document.createTextNode(" "));
+  if (renderedTextBookId !== currentBook.id) {
+    const frag = document.createDocumentFragment();
+    textUnitElements = [];
+    for (let i = 0; i < units.length; i++) {
+      const span = document.createElement("button");
+      span.type = "button";
+      span.className = "text-unit";
+      span.dataset.index = String(i);
+      span.textContent = units[i];
+      textUnitElements.push(span);
+      frag.append(span);
+      // 日本語は基本スペース不要。英数字の後だけスペース
+      if (i < units.length - 1 && /[A-Za-z0-9]$/.test(units[i]) && /^[A-Za-z0-9]/.test(units[i + 1])) {
+        frag.append(document.createTextNode(" "));
+      }
     }
+    els.textPane.replaceChildren(frag);
+    renderedTextBookId = currentBook.id;
+    currentTextElement = null;
   }
 
-  if (end < units.length) {
-    const trail = document.createElement("span");
-    trail.className = "text-ellipsis";
-    trail.textContent = " …";
-    frag.append(trail);
+  const currentEl = textUnitElements[player.index] || null;
+  if (currentTextElement !== currentEl) {
+    currentTextElement?.classList.remove("current");
+    currentEl?.classList.add("current");
+    currentTextElement = currentEl;
   }
 
-  els.textPane.replaceChildren(frag);
-
-  // ページ全体は動かさず、テキスト枠内だけ現在位置へスクロール
-  const currentEl = els.textPane.querySelector(".text-unit.current");
-  if (currentEl instanceof HTMLElement) {
+  if (scrollToCurrent && currentEl) {
+    // 表示に切り替えた時だけ現在位置へ移動し、その後は全文を自由にスクロールできる。
     const pane = els.textPane;
     const paneRect = pane.getBoundingClientRect();
     const elRect = currentEl.getBoundingClientRect();
@@ -313,7 +310,6 @@ async function handlePdfFile(file) {
     const result = await processPdf(file, ({ stage, ratio }) => {
       setImportProgress(stage, ratio);
     });
-
     const now = Date.now();
     /** @type {Book} */
     const book = {
@@ -325,7 +321,6 @@ async function handlePdfFile(file) {
       createdAt: now,
       updatedAt: now,
     };
-
     await saveBook(book);
     setImportProgress("完了", 1);
     els.pdfInput.value = "";

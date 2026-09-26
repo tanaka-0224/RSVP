@@ -2,6 +2,7 @@ import * as pdfjs from "../vendor/pdf.min.mjs";
 import { normalizeText, segmentForRsvp } from "./segment.js";
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL("../vendor/pdf.worker.min.mjs", import.meta.url).href;
+const cMapUrl = new URL("../vendor/cmaps/", import.meta.url).href;
 
 /**
  * @param {File} file
@@ -12,7 +13,7 @@ export async function processPdf(file, onProgress = () => {}) {
   onProgress({ stage: "PDFを読み込み中…", ratio: 0.05 });
 
   const data = new Uint8Array(await file.arrayBuffer());
-  const doc = await pdfjs.getDocument({ data }).promise;
+  const doc = await pdfjs.getDocument({ data, cMapUrl, cMapPacked: true }).promise;
   const pageCount = doc.numPages;
 
   /** @type {string[]} */

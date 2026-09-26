@@ -1,6 +1,7 @@
 /* RSVP読書 — オフライン用 Service Worker */
 
-const CACHE = "rsvp-static-v4";
+const CACHE = "rsvp-static-v5";
+const CMAP_MANIFEST = "./vendor/cmaps/manifest.json";
 
 const ASSETS = [
   "./",
@@ -13,6 +14,7 @@ const ASSETS = [
   "./js/segment.js",
   "./vendor/pdf.min.mjs",
   "./vendor/pdf.worker.min.mjs",
+  CMAP_MANIFEST,
   "./manifest.webmanifest",
   "./icons/icon-192.png",
   "./icons/icon-512.png",
@@ -21,7 +23,13 @@ const ASSETS = [
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(CACHE).then((cache) => cache.addAll(ASSETS)).then(() => self.skipWaiting())
+    caches.open(CACHE).then(async (cache) => {
+      await cache.addAll(ASSETS);
+      const manifest = await cache.match(new URL(CMAP_MANIFEST, self.location.href));
+      const cmapFiles = await manifest.json();
+      await cache.addAll(cmapFiles.map((file) => `./vendor/cmaps/${file}`));
+      await self.skipWaiting();
+    })
   );
 });
 
