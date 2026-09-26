@@ -50,6 +50,11 @@
           <div class="label" id="import-label">準備中…</div>
           <div class="bar"><span id="import-bar"></span></div>
         </div>
+        <div id="import-name-panel" class="import-name-panel" hidden>
+          <label for="import-name">本の名前</label>
+          <input type="text" id="import-name" maxlength="200" autocomplete="off" />
+          <button type="button" class="primary-btn" id="btn-save-import">この名前で追加</button>
+        </div>
         <p id="import-error" class="error" hidden></p>
       </div>
     </section>
@@ -97,6 +102,21 @@
         <p class="hint text-hint">本文全体をスクロールできます。タップした箇所からRSVPを再開できます。</p>
       </div>
     </section>
+  </div>
+
+  <!-- 削除確認 -->
+  <div class="modal" id="modal-rename" role="dialog" aria-modal="true" aria-labelledby="rename-title">
+    <div class="sheet">
+      <h2 id="rename-title">本の名前を変更</h2>
+      <label class="jump-field" for="rename-input">
+        <span>本の名前</span>
+        <input type="text" id="rename-input" maxlength="200" autocomplete="off" />
+      </label>
+      <div class="sheet-actions">
+        <button type="button" class="ghost-btn" id="btn-rename-cancel">キャンセル</button>
+        <button type="button" class="primary-btn" id="btn-rename-confirm">保存</button>
+      </div>
+    </div>
   </div>
 
   <!-- 削除確認 -->

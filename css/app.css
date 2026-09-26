@@ -162,12 +162,17 @@ button {
 
 .book-card-wrap {
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: 1fr auto auto;
   gap: 4px;
   align-items: stretch;
 }
 
 .book-card-wrap .delete-btn {
+  align-self: center;
+  color: var(--muted);
+}
+
+.book-card-wrap .rename-btn {
   align-self: center;
   color: var(--muted);
 }
@@ -271,6 +276,29 @@ button {
 .status-box .label {
   font-size: 0.9rem;
   margin-bottom: 10px;
+}
+
+.import-name-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: var(--bg-card);
+  border-radius: var(--radius);
+  padding: 16px;
+}
+
+.import-name-panel label {
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.import-name-panel input {
+  min-height: 48px;
+  width: 100%;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: var(--bg-elev);
+  padding: 0 14px;
 }
 
 .bar {

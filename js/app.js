@@ -30,6 +30,9 @@ const els = {
   importLabel: $("import-label"),
   importBar: $("import-bar"),
   importError: $("import-error"),
+  importNamePanel: $("import-name-panel"),
+  importName: /** @type {HTMLInputElement} */ ($("import-name")),
+  btnSaveImport: $("btn-save-import"),
   readerTitle: $("reader-title"),
   rsvpWord: $("rsvp-word"),
   readerMeta: $("reader-meta"),
@@ -49,6 +52,10 @@ const els = {
   speedRange: /** @type {HTMLInputElement} */ ($("speed-range")),
   speedLabel: $("speed-label"),
   modalDelete: $("modal-delete"),
+  modalRename: $("modal-rename"),
+  renameInput: /** @type {HTMLInputElement} */ ($("rename-input")),
+  btnRenameCancel: $("btn-rename-cancel"),
+  btnRenameConfirm: $("btn-rename-confirm"),
   deleteMessage: $("delete-message"),
   btnDeleteCancel: $("btn-delete-cancel"),
   btnDeleteConfirm: $("btn-delete-confirm"),
@@ -66,8 +73,12 @@ let mode = "rsvp";
 let showTextAlongsideRsvp = false;
 /** @type {string|null} */
 let pendingDeleteId = null;
+/** @type {string|null} */
+let pendingRenameId = null;
 let saveTimer = 0;
 let importing = false;
+/** @type {Book|null} */
+let pendingImportBook = null;
 /** @type {HTMLButtonElement[]} */
 let textUnitElements = [];
 /** @type {HTMLButtonElement|null} */
@@ -129,7 +140,14 @@ async function refreshLibrary() {
       openDeleteModal(book);
     });
 
-    card.append(openBtn, delBtn);
+    const renameBtn = document.createElement("button");
+    renameBtn.type = "button";
+    renameBtn.className = "icon-btn rename-btn";
+    renameBtn.setAttribute("aria-label", `${book.title}の名前を変更`);
+    renameBtn.textContent = "✎";
+    renameBtn.addEventListener("click", () => openRenameModal(book));
+
+    card.append(openBtn, renameBtn, delBtn);
     els.bookList.append(card);
   }
 }
@@ -279,6 +297,20 @@ function closeDeleteModal() {
   els.modalDelete.classList.remove("open");
 }
 
+/** @param {Book} book */
+function openRenameModal(book) {
+  pendingRenameId = book.id;
+  els.renameInput.value = book.title;
+  els.modalRename.classList.add("open");
+  els.renameInput.focus();
+  els.renameInput.select();
+}
+
+function closeRenameModal() {
+  pendingRenameId = null;
+  els.modalRename.classList.remove("open");
+}
+
 function openJumpModal() {
   if (!currentBook) return;
   player.pause();
@@ -303,6 +335,8 @@ async function handlePdfFile(file) {
 
   importing = true;
   els.importError.hidden = true;
+  els.importNamePanel.hidden = true;
+  pendingImportBook = null;
   els.importStatus.classList.add("visible");
   setImportProgress("開始…", 0.02);
 
@@ -321,11 +355,12 @@ async function handlePdfFile(file) {
       createdAt: now,
       updatedAt: now,
     };
-    await saveBook(book);
+    pendingImportBook = book;
+    els.importName.value = result.title;
+    els.importNamePanel.hidden = false;
     setImportProgress("完了", 1);
     els.pdfInput.value = "";
     importing = false;
-    await openBook(book.id);
   } catch (err) {
     console.error(err);
     importing = false;
@@ -364,11 +399,35 @@ function bindEvents() {
   els.btnAddBook.addEventListener("click", () => {
     els.importError.hidden = true;
     els.importStatus.classList.remove("visible");
+    els.importNamePanel.hidden = true;
+    pendingImportBook = null;
     showView("import");
   });
 
+  els.btnSaveImport.addEventListener("click", async () => {
+    if (!pendingImportBook) return;
+    const title = els.importName.value.trim();
+    if (!title) {
+      els.importName.focus();
+      els.importName.setCustomValidity("本の名前を入力してください。");
+      els.importName.reportValidity();
+      return;
+    }
+    els.importName.setCustomValidity("");
+    pendingImportBook.title = title;
+    await saveBook(pendingImportBook);
+    const id = pendingImportBook.id;
+    pendingImportBook = null;
+    els.importNamePanel.hidden = true;
+    await openBook(id);
+  });
+
+  els.importName.addEventListener("input", () => els.importName.setCustomValidity(""));
+
   els.btnImportBack.addEventListener("click", async () => {
     if (importing) return;
+    pendingImportBook = null;
+    els.importNamePanel.hidden = true;
     showView("library");
     await refreshLibrary();
   });
@@ -441,6 +500,33 @@ function bindEvents() {
   els.modalDelete.addEventListener("click", (e) => {
     if (e.target === els.modalDelete) closeDeleteModal();
   });
+  els.btnRenameCancel.addEventListener("click", closeRenameModal);
+  els.modalRename.addEventListener("click", (e) => {
+    if (e.target === els.modalRename) closeRenameModal();
+  });
+  els.btnRenameConfirm.addEventListener("click", async () => {
+    if (!pendingRenameId) return;
+    const title = els.renameInput.value.trim();
+    if (!title) {
+      els.renameInput.focus();
+      els.renameInput.setCustomValidity("本の名前を入力してください。");
+      els.renameInput.reportValidity();
+      return;
+    }
+    const book = await getBook(pendingRenameId);
+    if (book) {
+      book.title = title;
+      book.updatedAt = Date.now();
+      await saveBook(book);
+      if (currentBook?.id === book.id) {
+        currentBook.title = title;
+        els.readerTitle.textContent = title;
+      }
+    }
+    closeRenameModal();
+    await refreshLibrary();
+  });
+  els.renameInput.addEventListener("input", () => els.renameInput.setCustomValidity(""));
   els.btnDeleteConfirm.addEventListener("click", async () => {
     if (!pendingDeleteId) return;
     const id = pendingDeleteId;
