@@ -8,6 +8,7 @@ import {
   progressPercent,
 } from "./db.js";
 import { processPdf } from "./pdf.js";
+import { processEpub } from "./epub.js";
 import { RsvpPlayer } from "./reader.js";
 
 /** @typedef {import('./db.js').Book} Book */
@@ -30,7 +31,7 @@ const els = {
   btnStorageRefresh: $("btn-storage-refresh"),
   btnAddBook: $("btn-add-book"),
   btnImportBack: $("btn-import-back"),
-  pdfInput: /** @type {HTMLInputElement} */ ($("pdf-input")),
+  bookInput: /** @type {HTMLInputElement} */ ($("book-input")),
   importStatus: $("import-status"),
   importLabel: $("import-label"),
   importBar: $("import-bar"),
@@ -367,10 +368,12 @@ function closeJumpModal() {
   els.modalJump.classList.remove("open");
 }
 
-async function handlePdfFile(file) {
+async function handleBookFile(file) {
   if (!file || importing) return;
-  if (!/\.pdf$/i.test(file.name) && file.type !== "application/pdf") {
-    showImportError("PDFファイルを選択してください。");
+  const isPdf = /\.pdf$/i.test(file.name) || file.type === "application/pdf";
+  const isEpub = /\.epub$/i.test(file.name) || file.type === "application/epub+zip";
+  if (!isPdf && !isEpub) {
+    showImportError("PDFまたはEPUBファイルを選択してください。");
     return;
   }
 
@@ -382,7 +385,7 @@ async function handlePdfFile(file) {
   setImportProgress("開始…", 0.02);
 
   try {
-    const result = await processPdf(file, ({ stage, ratio }) => {
+    const result = await (isPdf ? processPdf : processEpub)(file, ({ stage, ratio }) => {
       setImportProgress(stage, ratio);
     });
     const now = Date.now();
@@ -400,7 +403,7 @@ async function handlePdfFile(file) {
     els.importName.value = result.title;
     els.importNamePanel.hidden = false;
     setImportProgress("完了", 1);
-    els.pdfInput.value = "";
+    els.bookInput.value = "";
     importing = false;
   } catch (err) {
     console.error(err);
@@ -474,9 +477,9 @@ function bindEvents() {
     await refreshLibrary();
   });
 
-  els.pdfInput.addEventListener("change", () => {
-    const file = els.pdfInput.files?.[0];
-    if (file) handlePdfFile(file);
+  els.bookInput.addEventListener("change", () => {
+    const file = els.bookInput.files?.[0];
+    if (file) handleBookFile(file);
   });
 
   els.btnReaderBack.addEventListener("click", async () => {

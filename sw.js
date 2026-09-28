@@ -1,6 +1,6 @@
 /* RSVP読書 — オフライン用 Service Worker */
 
-const CACHE = "rsvp-static-v5";
+const CACHE = "rsvp-static-v6";
 const CMAP_MANIFEST = "./vendor/cmaps/manifest.json";
 
 const ASSETS = [
@@ -10,6 +10,7 @@ const ASSETS = [
   "./js/app.js",
   "./js/db.js",
   "./js/pdf.js",
+  "./js/epub.js",
   "./js/reader.js",
   "./js/segment.js",
   "./vendor/pdf.min.mjs",

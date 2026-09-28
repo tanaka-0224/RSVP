@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0f1115" />
-  <meta name="description" content="PDFを端末内で解析し、オフラインでRSVP読書するWebアプリ" />
+  <meta name="description" content="PDF・EPUBを端末内で解析し、オフラインでRSVP読書するWebアプリ" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <title>RSVP読書</title>
@@ -22,7 +22,7 @@
         <div class="spacer"></div>
       </header>
       <div class="library-body">
-        <p class="hint">PDFは端末内だけで解析・保存します。外出先では保存済みの本をオフラインで読めます。</p>
+        <p class="hint">PDF・EPUBは端末内だけで解析・保存します。外出先では保存済みの本をオフラインで読めます。</p>
         <section class="storage-panel" aria-labelledby="storage-title">
           <div class="storage-heading">
             <strong id="storage-title">このサイトの保存容量</strong>
@@ -37,26 +37,26 @@
         <div id="book-list" class="book-list"></div>
         <div id="library-empty" class="empty" hidden>
           <strong>本がまだありません</strong>
-          自宅などネット接続がある環境でPDFを追加してください。
+          自宅などネット接続がある環境でPDFまたはEPUBを追加してください。
         </div>
       </div>
       <div class="add-bar">
-        <button type="button" class="primary-btn" id="btn-add-book">PDFを追加</button>
+        <button type="button" class="primary-btn" id="btn-add-book">本を追加</button>
       </div>
     </section>
 
     <!-- インポート -->
-    <section id="view-import" class="view" aria-label="PDF取り込み">
+    <section id="view-import" class="view" aria-label="本の取り込み">
       <header class="topbar">
         <button type="button" class="icon-btn" id="btn-import-back" aria-label="戻る">←</button>
-        <h1>PDFを追加</h1>
+        <h1>本を追加</h1>
       </header>
       <div class="import-body">
-        <label class="drop" for="pdf-input">
-          <strong>PDFを選択</strong>
-          <p>テキスト情報を持つ横書きPDFに対応しています</p>
+        <label class="drop" for="book-input">
+          <strong>PDFまたはEPUBを選択</strong>
+          <p>テキスト情報を持つPDFとEPUBに対応しています</p>
         </label>
-        <input type="file" id="pdf-input" accept="application/pdf,.pdf" hidden />
+        <input type="file" id="book-input" accept="application/pdf,.pdf,application/epub+zip,.epub" hidden />
         <div id="import-status" class="status-box" aria-live="polite">
           <div class="label" id="import-label">準備中…</div>
           <div class="bar"><span id="import-bar"></span></div>
