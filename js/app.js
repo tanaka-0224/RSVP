@@ -6,6 +6,10 @@ import {
   updateBookProgress,
   createId,
   progressPercent,
+  listWords,
+  getWord,
+  saveWordOccurrence,
+  deleteWord,
 } from "./db.js";
 import { processPdf } from "./pdf.js";
 import { processEpub } from "./epub.js";
@@ -19,11 +23,17 @@ const views = {
   library: $("view-library"),
   import: $("view-import"),
   reader: $("view-reader"),
+  wordbook: $("view-wordbook"),
 };
 
 const els = {
   bookList: $("book-list"),
   libraryEmpty: $("library-empty"),
+  wordList: $("word-list"),
+  wordEmpty: $("word-empty"),
+  btnWordbook: $("btn-wordbook"),
+  btnWordbookBack: $("btn-wordbook-back"),
+  btnSaveWord: /** @type {HTMLButtonElement} */ ($("btn-save-word")),
   storageUsage: $("storage-usage"),
   storageNote: $("storage-note"),
   storageTrack: $("storage-track"),
@@ -94,6 +104,7 @@ let renderedTextBookId = null;
 const player = new RsvpPlayer({
   onTick(index, unit) {
     renderRsvpUnit(unit);
+    updateWordButton();
     renderMeta(index);
     if (mode === "text" || showTextAlongsideRsvp) renderTextMode();
     scheduleSave({ position: index });
@@ -157,6 +168,56 @@ async function refreshLibrary() {
     card.append(openBtn, renameBtn, delBtn);
     els.bookList.append(card);
   }
+}
+
+async function refreshWordbook() {
+  const words = await listWords();
+  els.wordList.replaceChildren();
+  els.wordEmpty.hidden = words.length > 0;
+  for (const word of words) {
+    const row = document.createElement("article");
+    row.className = "word-card";
+    const info = document.createElement("div");
+    const term = document.createElement("strong");
+    term.textContent = word.term;
+    const detail = document.createElement("p");
+    const books = [...new Set(word.occurrences.map((item) => item.bookTitle))];
+    detail.textContent = `${word.occurrences.length}回 · ${books.join("、")}`;
+    info.append(term, detail);
+    const remove = document.createElement("button");
+    remove.type = "button";
+    remove.className = "danger-btn";
+    remove.textContent = "削除";
+    remove.addEventListener("click", async () => {
+      await deleteWord(word.term);
+      await refreshWordbook();
+      if (currentBook) updateWordButton();
+    });
+    row.append(info, remove);
+    els.wordList.append(row);
+  }
+}
+
+async function updateWordButton() {
+  const term = getWordRange()
+    .filter(({ unit }) => !isPunctuation(unit))
+    .map(({ unit }) => unit)
+    .join("");
+  const saved = term ? await getWord(term) : undefined;
+  els.btnSaveWord.textContent = saved
+    ? "登録済み"
+    : "前後をまとめて登録";
+  els.btnSaveWord.disabled = !term;
+}
+
+function isPunctuation(unit) {
+  return /^[。．！？!?、，,…]+$/.test(unit);
+}
+
+function getWordRange() {
+  const start = Math.max(0, player.index - 1);
+  const end = Math.min(player.units.length - 1, player.index + 1);
+  return player.units.slice(start, end + 1).map((unit, offset) => ({ unit, index: start + offset }));
 }
 
 function formatBytes(bytes) {
@@ -441,6 +502,21 @@ function registerServiceWorker() {
 
 function bindEvents() {
   els.btnStorageRefresh.addEventListener("click", refreshStorageUsage);
+  els.btnWordbook.addEventListener("click", async () => {
+    await refreshWordbook();
+    showView("wordbook");
+  });
+  els.btnWordbookBack.addEventListener("click", () => showView("library"));
+  els.btnSaveWord.addEventListener("click", async () => {
+    if (!currentBook) return;
+    const term = getWordRange()
+      .filter(({ unit }) => !isPunctuation(unit))
+      .map(({ unit }) => unit)
+      .join("");
+    if (!term) return;
+    await saveWordOccurrence(term, currentBook, player.index);
+    await updateWordButton();
+  });
   els.btnAddBook.addEventListener("click", () => {
     els.importError.hidden = true;
     els.importStatus.classList.remove("visible");

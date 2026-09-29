@@ -1,6 +1,7 @@
 const DB_NAME = "rsvp-reader";
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const STORE = "books";
+const WORD_STORE = "words";
 
 /** @type {Promise<IDBDatabase>|null} */
 let dbPromise = null;
@@ -16,6 +17,9 @@ function openDb() {
       if (!db.objectStoreNames.contains(STORE)) {
         const store = db.createObjectStore(STORE, { keyPath: "id" });
         store.createIndex("updatedAt", "updatedAt");
+      }
+      if (!db.objectStoreNames.contains(WORD_STORE)) {
+        db.createObjectStore(WORD_STORE, { keyPath: "term" });
       }
     };
 
@@ -94,6 +98,39 @@ export async function deleteBook(id) {
     tx.oncomplete = () => resolve();
     tx.onerror = () => reject(tx.error);
   });
+}
+
+/** @typedef {{ term: string, occurrences: { bookId: string, bookTitle: string, index: number, addedAt: number }[] }} SavedWord */
+
+export async function listWords() {
+  const db = await openDb();
+  const tx = db.transaction(WORD_STORE, "readonly");
+  /** @type {SavedWord[]} */
+  const words = await reqToPromise(tx.objectStore(WORD_STORE).getAll());
+  return words.sort((a, b) => a.term.localeCompare(b.term, "ja"));
+}
+
+export async function getWord(term) {
+  const db = await openDb();
+  const tx = db.transaction(WORD_STORE, "readonly");
+  return reqToPromise(tx.objectStore(WORD_STORE).get(term));
+}
+
+export async function saveWordOccurrence(term, book, index) {
+  const db = await openDb();
+  const tx = db.transaction(WORD_STORE, "readwrite");
+  const store = tx.objectStore(WORD_STORE);
+  const word = await reqToPromise(store.get(term)) || { term, occurrences: [] };
+  if (!word.occurrences.some((item) => item.bookId === book.id && item.index === index)) {
+    word.occurrences.push({ bookId: book.id, bookTitle: book.title, index, addedAt: Date.now() });
+  }
+  await reqToPromise(store.put(word));
+}
+
+export async function deleteWord(term) {
+  const db = await openDb();
+  const tx = db.transaction(WORD_STORE, "readwrite");
+  await reqToPromise(tx.objectStore(WORD_STORE).delete(term));
 }
 
 /**

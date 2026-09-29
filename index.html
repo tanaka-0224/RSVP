@@ -20,6 +20,7 @@
       <header class="topbar">
         <h1>RSVP読書</h1>
         <div class="spacer"></div>
+        <button type="button" class="ghost-btn" id="btn-wordbook">単語帳</button>
       </header>
       <div class="library-body">
         <p class="hint">PDF・EPUBは端末内だけで解析・保存します。外出先では保存済みの本をオフラインで読めます。</p>
@@ -42,6 +43,17 @@
       </div>
       <div class="add-bar">
         <button type="button" class="primary-btn" id="btn-add-book">本を追加</button>
+      </div>
+    </section>
+
+    <section id="view-wordbook" class="view" aria-label="単語帳">
+      <header class="topbar">
+        <button type="button" class="icon-btn" id="btn-wordbook-back" aria-label="ライブラリへ">←</button>
+        <h1>単語帳</h1>
+      </header>
+      <div class="library-body">
+        <div id="word-list" class="word-list"></div>
+        <div id="word-empty" class="empty"><strong>単語はまだありません</strong>読書中に気になった語を登録できます。</div>
       </div>
     </section>
 
@@ -82,6 +94,8 @@
       <div class="reader-stage" id="rsvp-stage">
         <div class="rsvp-word" id="rsvp-word" aria-live="polite">—</div>
         <div class="reader-meta" id="reader-meta">0 / 0 · 0%</div>
+        <button type="button" class="primary-btn word-save-btn" id="btn-save-word">前後をまとめて登録</button>
+        <p class="word-save-hint">現在の表示と前後1単位を、1つの語句として登録します</p>
       </div>
 
       <div class="reader-stage text-stage" id="text-stage" hidden>

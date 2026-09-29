@@ -211,6 +211,12 @@ button {
   gap: 10px;
 }
 
+.word-list { display: grid; gap: 10px; }
+.word-card { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px; background: var(--bg-card); border: 1px solid var(--line); border-radius: 14px; }
+.word-card strong { font-family: var(--serif); font-size: 1.15rem; }
+.word-card p { margin: 5px 0 0; color: var(--muted); font-size: .82rem; }
+.word-card .danger-btn { min-height: 40px; padding: 0 12px; }
+
 .book-card-wrap {
   display: grid;
   grid-template-columns: 1fr auto auto;
@@ -411,6 +417,10 @@ button {
   margin-top: 28px;
   text-align: center;
 }
+
+.word-save-btn { margin-top: 18px; min-height: 42px; padding: 0 16px; }
+.word-save-btn:disabled { opacity: .5; cursor: default; }
+.word-save-hint { margin: 6px 0 0; color: var(--muted); font-size: .75rem; }
 
 .reader-controls {
   flex-shrink: 0;

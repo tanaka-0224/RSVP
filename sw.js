@@ -1,6 +1,6 @@
 /* RSVP読書 — オフライン用 Service Worker */
 
-const CACHE = "rsvp-static-v6";
+const CACHE = "rsvp-static-v7";
 const CMAP_MANIFEST = "./vendor/cmaps/manifest.json";
 
 const ASSETS = [
