@@ -395,7 +395,21 @@ function scheduleSave(patch) {
       position: currentBook.position,
       cpm: currentBook.cpm,
     });
-  }, 400);
+  }, 250);
+}
+
+async function flushProgress() {
+  window.clearTimeout(saveTimer);
+  saveTimer = 0;
+  if (!currentBook) return;
+  try {
+    await updateBookProgress(currentBook.id, {
+      position: player.index,
+      cpm: currentBook.cpm,
+    });
+  } catch (err) {
+    console.warn("Progress save failed", err);
+  }
 }
 
 /**
@@ -579,12 +593,7 @@ function bindEvents() {
 
   els.btnReaderBack.addEventListener("click", async () => {
     player.pause();
-    if (currentBook) {
-      await updateBookProgress(currentBook.id, {
-        position: player.index,
-        cpm: currentBook.cpm,
-      });
-    }
+    await flushProgress();
     currentBook = null;
     showView("library");
     await refreshLibrary();
@@ -696,12 +705,10 @@ function bindEvents() {
 
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "hidden" && currentBook) {
-      updateBookProgress(currentBook.id, {
-        position: player.index,
-        cpm: currentBook.cpm,
-      });
+      void flushProgress();
     }
   });
+  window.addEventListener("pagehide", () => void flushProgress());
 
   window.addEventListener("keydown", (e) => {
     if (!views.reader.classList.contains("active") || mode !== "rsvp") return;

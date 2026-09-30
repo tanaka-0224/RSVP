@@ -49,7 +49,7 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
 
-  // HTML / JS / CSS はネット優先（更新がすぐ届く）
+  // アプリ本体はキャッシュを先に返し、更新確認は裏で行う。
   const isShell =
     request.mode === "navigate" ||
     url.pathname.endsWith(".html") ||
@@ -58,17 +58,23 @@ self.addEventListener("fetch", (event) => {
     url.pathname.endsWith("sw.js");
 
   if (isShell) {
-    event.respondWith(
-      fetch(request)
-        .then((res) => {
-          if (res.ok) {
-            const copy = res.clone();
-            caches.open(CACHE).then((cache) => cache.put(request, copy));
-          }
-          return res;
-        })
-        .catch(() => caches.match(request).then((c) => c || caches.match("./index.html")))
-    );
+    event.respondWith((async () => {
+      const cached = await caches.match(request) ||
+        (request.mode === "navigate" ? await caches.match("./index.html") : undefined);
+      const refresh = fetch(request).then(async (res) => {
+        if (res.ok) await (await caches.open(CACHE)).put(request, res.clone());
+        return res;
+      });
+      if (cached) {
+        event.waitUntil(refresh.catch(() => {}));
+        return cached;
+      }
+      try {
+        return await refresh;
+      } catch {
+        return caches.match("./index.html");
+      }
+    })());
     return;
   }
 

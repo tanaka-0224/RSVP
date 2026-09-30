@@ -139,17 +139,27 @@ export async function deleteWord(term) {
  * @returns {Promise<Book|undefined>}
  */
 export async function updateBookProgress(id, patch) {
-  const book = await getBook(id);
-  if (!book) return undefined;
+  const db = await openDb();
+  const tx = db.transaction(STORE, "readwrite");
+  const store = tx.objectStore(STORE);
+  const completed = new Promise((resolve, reject) => {
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+    tx.onabort = () => reject(tx.error);
+  });
+  const book = await reqToPromise(store.get(id));
+  if (!book) {
+    await completed;
+    return undefined;
+  }
 
   if (typeof patch.position === "number") {
     book.position = Math.max(0, Math.min(patch.position, Math.max(0, book.units.length - 1)));
   }
-  if (typeof patch.cpm === "number") {
-    book.cpm = patch.cpm;
-  }
+  if (typeof patch.cpm === "number") book.cpm = patch.cpm;
   book.updatedAt = Date.now();
-  await saveBook(book);
+  store.put(book);
+  await completed;
   return book;
 }
 
