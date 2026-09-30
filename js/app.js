@@ -199,14 +199,14 @@ async function refreshWordbook() {
 }
 
 async function updateWordButton() {
-  const term = getWordRange()
+  const term = getSentenceRange()
     .filter(({ unit }) => !isPunctuation(unit))
     .map(({ unit }) => unit)
     .join("");
   const saved = term ? await getWord(term) : undefined;
   els.btnSaveWord.textContent = saved
     ? "登録済み"
-    : "前後をまとめて登録";
+    : "文脈を単語帳に登録";
   els.btnSaveWord.disabled = !term;
 }
 
@@ -214,10 +214,29 @@ function isPunctuation(unit) {
   return /^[。．！？!?、，,…]+$/.test(unit);
 }
 
-function getWordRange() {
-  const start = Math.max(0, player.index - 1);
-  const end = Math.min(player.units.length - 1, player.index + 1);
-  return player.units.slice(start, end + 1).map((unit, offset) => ({ unit, index: start + offset }));
+function getSentenceRange() {
+  /** @type {{ start: number, end: number }[]} */
+  const sentences = [];
+  let start = 0;
+  for (let i = 0; i < player.units.length; i += 1) {
+    if (/[。．！？!?…]$/.test(player.units[i])) {
+      sentences.push({ start, end: i });
+      start = i + 1;
+    }
+  }
+  if (start < player.units.length) sentences.push({ start, end: player.units.length - 1 });
+
+  const targetSentence = sentences.findIndex(({ start: sentenceStart, end }) =>
+    player.index >= sentenceStart && player.index <= end,
+  );
+  if (targetSentence < 0) return [];
+
+  const rangeStart = sentences[Math.max(0, targetSentence - 1)].start;
+  const rangeEnd = sentences[targetSentence].end;
+  return player.units.slice(rangeStart, rangeEnd + 1).map((unit, offset) => ({
+    unit,
+    index: rangeStart + offset,
+  }));
 }
 
 function formatBytes(bytes) {
@@ -509,7 +528,7 @@ function bindEvents() {
   els.btnWordbookBack.addEventListener("click", () => showView("library"));
   els.btnSaveWord.addEventListener("click", async () => {
     if (!currentBook) return;
-    const term = getWordRange()
+    const term = getSentenceRange()
       .filter(({ unit }) => !isPunctuation(unit))
       .map(({ unit }) => unit)
       .join("");
